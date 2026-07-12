@@ -12,9 +12,13 @@
     "zod": "^3.22.4"
   },
   "devDependencies": {
+    "@types/express": "^5.0.6",
     "@types/jest": "^30.0.0",
+    "@types/supertest": "^7.2.0",
     "config": "^4.4.2",
+    "express": "^5.2.1",
     "jest": "^30.4.2",
+    "supertest": "^7.2.2",
     "ts-jest": "^29.4.11",
     "typescript": "^5.0.0"
   }
