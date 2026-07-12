@@ -33,7 +33,9 @@ export interface ValidatorOptions<T = unknown> {
  * Creates a validation middleware with deep object validation
  * to prevent hallucination from API outputs
  */
-export function validate<T>(options: ValidatorOptions<T>) {
+export function validate<T>(input: ValidatorOptions<T> | ValidationSchema<T>) {
+  const options: ValidatorOptions<T> = 'schema' in input ? input : { schema: input };
+
   return (req: Request, res: Response, next: NextFunction): void => {
     const errors: string[] = [];
 
@@ -126,8 +128,8 @@ export class DeepObjectValidator {
       };
     }
 
-    const result = strict 
-      ? expectedSchema.strict().safeParse(obj)
+    const result = strict
+      ? (expectedSchema as unknown as { strict: () => z.ZodSchema<T> }).strict().safeParse(obj)
       : expectedSchema.safeParse(obj);
 
     if (result.success) {
@@ -139,14 +141,14 @@ export class DeepObjectValidator {
 
     return {
       success: false,
-      errors: result.error.errors.map(e => e.message)
+      errors: result.error.errors.map((e: { message: string }) => e.message)
     };
   }
 
   /**
    * Recursively validates all nested objects in a structure
    */
-  static validateDeep(obj: unknown, depth: number = 0, maxDepth: number = 10): ValidationResult {
+  static validateDeep(obj: unknown, depth: number = 0, maxDepth: number = 10): ValidationResult<unknown> {
     if (depth > maxDepth) {
       return {
         success: false,
@@ -186,7 +188,7 @@ export class DeepObjectValidator {
     response: unknown,
     expectedKeys: string[],
     allowExtraKeys: boolean = false
-  ): ValidationResult {
+  ): ValidationResult<unknown> {
     if (typeof response !== 'object' || response === null) {
       return {
         success: false,

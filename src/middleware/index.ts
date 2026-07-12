@@ -7,4 +7,4 @@ export {
   type ValidatorOptions
 } from './validator.js';
 
-export default validate;
+export { default } from './validator.js';

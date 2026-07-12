@@ -38,7 +38,7 @@ const validResponse = {
 
 function createApp() {
   const app = express();
-  const gateway = new LlmGateNode("anthropic/claude-3-opus-20240229");
+  const gateway = new LlmGateNode("cc/claude-opus-4-8");
 
   app.use(express.json());
   app.post(
@@ -56,7 +56,7 @@ describe("LLM Gate Node Router", () => {
 
     it("instantiates gateway with default primary model when no argument is provided", () => {
       const defaultGateway = new LlmGateNode();
-      expect((defaultGateway as any).primaryModel).toBe("anthropic/claude-3-opus-20240229");
+      expect((defaultGateway as any).primaryModel).toBe("cc/claude-opus-4-8");
     });
 
     it("handles missing req.body gracefully by falling back to empty object serialization", async () => {
@@ -79,9 +79,9 @@ describe("LLM Gate Node Router", () => {
         .expect(200);
 
       expect(response.body.llmRouter.decision).toMatchObject({
-         model: "groq/llama-3-8b",
-         provider: "groq",
-         tier: 2
+         model: "evaluating-dynamic-ladder",
+        provider: "dynamic-ladder",
+        tier: 3
       });
     });
 
@@ -94,19 +94,19 @@ describe("LLM Gate Node Router", () => {
 
       expect(response.body.body).toEqual(validRequest);
       expect(response.body.llmRouter.decision).toMatchObject({
-        model: "groq/llama-3-8b",
-        provider: "groq",
-        tier: 2,
-        reason: "Routed to Tier 2 based on heuristics"
+        model: "evaluating-dynamic-ladder",
+        provider: "dynamic-ladder",
+        tier: 3,
+        reason: "Evaluated dynamically to Tier 3"
       });
       expect(RoutingDecisionSchema.safeParse(response.body.llmRouter.decision).success).toBe(true);
     });
 
     it.each([
-      ["payment", "Process a customer payment reversal"],
-      ["auth", "Debug auth callback failure"],
-      ["security", "Review security incident timeline"],
-      ["production", "Deploy production rollback plan"]
+      ["live_order", "Process a live_order payload"],
+      ["whitelist", "Debug whitelist auth failure"],
+      ["signal_gate", "Review signal_gate timeline"],
+      ["money-path", "Deploy money-path rollback plan"]
     ])("routes %s-sensitive prompts to the primary model", async (_keyword, content) => {
       const response = await request(createApp())
         .post("/v1/chat/completions")
@@ -114,7 +114,7 @@ describe("LLM Gate Node Router", () => {
         .expect(200);
 
       expect(response.body.llmRouter.decision).toMatchObject({
-        model: "anthropic/claude-3-opus-20240229",
+        model: "evaluating-dynamic-ladder",
         provider: "primary",
         tier: 0
       });
@@ -148,7 +148,7 @@ describe("LLM Gate Node Router", () => {
       ]
     ])("falls back to primary model (fail-open strategy) for %s", async (_name, setupFn) => {
       const app = express();
-      const gateway = new LlmGateNode("anthropic/claude-3-opus-20240229");
+      const gateway = new LlmGateNode("cc/claude-opus-4-8");
 
       app.use(express.json());
       app.use((req, res, next) => {
@@ -170,7 +170,7 @@ describe("LLM Gate Node Router", () => {
         .expect(200);
 
       expect(response.body.llmRouter.decision).toMatchObject({
-        model: "anthropic/claude-3-opus-20240229",
+        model: "cc/claude-opus-4-8",
         provider: "primary",
         tier: 0,
         reason: "Fail-open"

@@ -13,9 +13,8 @@
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
-    "resolveJsonModule": true,
-    "moduleDirectories": ["node_modules"]
+    "resolveJsonModule": true
   },
-  "include": ["src/**/*", "tests/**/*"],
-  "exclude": ["node_modules", "dist", "__pycache__"]
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "tests", "__pycache__"]
 }

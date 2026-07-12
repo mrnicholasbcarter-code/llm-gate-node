@@ -9,7 +9,7 @@ import {
   createHallucinationGuard,
   ValidationResult,
   ValidationSchema
-} from '../../src/middleware/validator.js';
+} from '../../src/middleware/validator';
 
 // Test server setup
 let app: Application;
@@ -484,7 +484,7 @@ describe('Express Integration Tests', () => {
         res.json({
           success: true,
           user: req.body.user.name,
-          page: req.query.page || 1
+          page: req.query.page ? parseInt(req.query.page as string, 10) : 1
         });
       });
 
@@ -548,7 +548,7 @@ describe('Express Integration Tests', () => {
 
       const response = await request(app)
         .post('/test')
-        .send(null);
+        .send(null as unknown as object);
 
       expect(response.status).toBe(200);
     });
