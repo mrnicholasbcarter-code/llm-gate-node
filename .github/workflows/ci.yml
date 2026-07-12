@@ -1,0 +1,18 @@
+name: CI
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run tests
+        run: |
+          if [ -f package.json ]; then
+            npm ci && npm test
+          elif [ -f pyproject.toml ]; then
+            python3 -m venv .venv && source .venv/bin/activate && pip install -e ".[dev]" && pytest
+          fi

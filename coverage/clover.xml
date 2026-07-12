@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<coverage generated="1783830620535" clover="3.2.0">
+  <project timestamp="1783830620535" name="All files">
+    <metrics statements="21" coveredstatements="21" conditionals="9" coveredconditionals="9" methods="3" coveredmethods="3" elements="33" coveredelements="33" complexity="0" loc="21" ncloc="21" packages="1" files="1" classes="1"/>
+    <file name="index.ts" path="/home/nick/llm-gate-node/src/index.ts">
+      <metrics statements="21" coveredstatements="21" conditionals="9" coveredconditionals="9" methods="3" coveredmethods="3"/>
+      <line num="1" count="1" type="stmt"/>
+      <line num="3" count="1" type="stmt"/>
+      <line num="12" count="1" type="stmt"/>
+      <line num="24" count="1" type="stmt"/>
+      <line num="35" count="1" type="stmt"/>
+      <line num="54" count="1" type="stmt"/>
+      <line num="68" count="1" type="stmt"/>
+      <line num="72" count="11" type="stmt"/>
+      <line num="80" count="10" type="stmt"/>
+      <line num="81" count="9" type="stmt"/>
+      <line num="83" count="9" type="stmt"/>
+      <line num="84" count="9" type="cond" truecount="2" falsecount="0"/>
+      <line num="85" count="9" type="stmt"/>
+      <line num="88" count="6" type="cond" truecount="2" falsecount="0"/>
+      <line num="89" count="6" type="cond" truecount="2" falsecount="0"/>
+      <line num="90" count="6" type="cond" truecount="2" falsecount="0"/>
+      <line num="92" count="6" type="stmt"/>
+      <line num="102" count="6" type="stmt"/>
+      <line num="105" count="3" type="stmt"/>
+      <line num="114" count="3" type="stmt"/>
+      <line num="120" count="1" type="stmt"/>
+    </file>
+  </project>
+</coverage>
