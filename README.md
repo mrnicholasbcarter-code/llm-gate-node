@@ -88,17 +88,20 @@ app.post('/v1/chat/completions', gateway.middleware(), async (req, res, next) =>
     const payload = OpenAIChatCompletionRequestSchema.parse(req.body);
     const decision = req.llmRouter.decision;
 
-    const upstreamBaseUrl = decision.provider === 'primary'
-      ? process.env.PRIMARY_BASE_URL
-      : process.env.FALLBACK_BASE_URL;
+    const upstreamBaseUrl =
+      decision.provider === 'primary'
+        ? process.env.PRIMARY_BASE_URL
+        : process.env.FALLBACK_BASE_URL;
 
     const upstreamResponse = await fetch(`${upstreamBaseUrl}/v1/chat/completions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${decision.provider === 'primary'
-          ? process.env.PRIMARY_API_KEY
-          : process.env.FALLBACK_API_KEY}`,
+        Authorization: `Bearer ${
+          decision.provider === 'primary'
+            ? process.env.PRIMARY_API_KEY
+            : process.env.FALLBACK_API_KEY
+        }`,
       },
       body: JSON.stringify({ ...payload, model: decision.model }),
     });
@@ -183,7 +186,7 @@ spec:
             - containerPort: 3000
           env:
             - name: PORT
-              value: "3000"
+              value: '3000'
             - name: PRIMARY_MODEL
               value: anthropic/claude-3-opus-20240229
             - name: PRIMARY_BASE_URL

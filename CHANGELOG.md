@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
 - Comprehensive test suites with 100% coverage
 - GitHub Actions CI/CD pipeline with CodeQL security scanning
 - Automated dependency updates via Dependabot
@@ -17,4 +18,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.0] - 2024-01-15
 
 ### Added
+
 - Initial release

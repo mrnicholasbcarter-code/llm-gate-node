@@ -8,7 +8,7 @@ import {
   DeepObjectValidator,
   createHallucinationGuard,
   ValidationResult,
-  ValidationSchema
+  ValidationSchema,
 } from '../../src/middleware/validator';
 
 // Test server setup
@@ -33,17 +33,15 @@ describe('Validation Matrix', () => {
       const schema: ValidationSchema<{ name: string; age: number }> = {
         body: z.object({
           name: z.string(),
-          age: z.number().positive()
-        })
+          age: z.number().positive(),
+        }),
       };
 
       app.post('/test', validate(schema), (req: Request, res: Response) => {
         res.json({ success: true, data: req.body });
       });
 
-      const response = await request(app)
-        .post('/test')
-        .send({ name: 'Alice', age: 30 });
+      const response = await request(app).post('/test').send({ name: 'Alice', age: 30 });
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
@@ -53,17 +51,15 @@ describe('Validation Matrix', () => {
       const schema: ValidationSchema<{ name: string; age: number }> = {
         body: z.object({
           name: z.string(),
-          age: z.number().positive()
-        })
+          age: z.number().positive(),
+        }),
       };
 
       app.post('/test', validate(schema), (req: Request, res: Response) => {
         res.json({ success: true, data: req.body });
       });
 
-      const response = await request(app)
-        .post('/test')
-        .send({ name: 'Alice', age: -5 });
+      const response = await request(app).post('/test').send({ name: 'Alice', age: -5 });
 
       expect(response.status).toBe(400);
       expect(response.body.success).toBe(false);
@@ -74,17 +70,15 @@ describe('Validation Matrix', () => {
       const schema: ValidationSchema<{ page: number; limit: number }> = {
         query: z.object({
           page: z.coerce.number().int().min(1),
-          limit: z.coerce.number().int().min(1).max(100)
-        })
+          limit: z.coerce.number().int().min(1).max(100),
+        }),
       };
 
       app.get('/test', validate(schema), (req: Request, res: Response) => {
         res.json({ success: true, query: req.query });
       });
 
-      const response = await request(app)
-        .get('/test')
-        .query({ page: '1', limit: '50' });
+      const response = await request(app).get('/test').query({ page: '1', limit: '50' });
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
@@ -94,17 +88,15 @@ describe('Validation Matrix', () => {
       const schema: ValidationSchema<{ page: number; limit: number }> = {
         query: z.object({
           page: z.coerce.number().int().min(1),
-          limit: z.coerce.number().int().min(1).max(100)
-        })
+          limit: z.coerce.number().int().min(1).max(100),
+        }),
       };
 
       app.get('/test', validate(schema), (req: Request, res: Response) => {
         res.json({ success: true, query: req.query });
       });
 
-      const response = await request(app)
-        .get('/test')
-        .query({ page: '0', limit: '150' });
+      const response = await request(app).get('/test').query({ page: '0', limit: '150' });
 
       expect(response.status).toBe(400);
       expect(response.body.errors).toBeDefined();
@@ -113,16 +105,15 @@ describe('Validation Matrix', () => {
     it('should validate route params', async () => {
       const schema: ValidationSchema<{ id: string }> = {
         params: z.object({
-          id: z.string().uuid()
-        })
+          id: z.string().uuid(),
+        }),
       };
 
       app.get('/test/:id', validate(schema), (req: Request, res: Response) => {
         res.json({ success: true, id: req.params.id });
       });
 
-      const response = await request(app)
-        .get('/test/550e8400-e29b-41d4-a716-446655440000');
+      const response = await request(app).get('/test/550e8400-e29b-41d4-a716-446655440000');
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
@@ -131,16 +122,15 @@ describe('Validation Matrix', () => {
     it('should reject invalid route params', async () => {
       const schema: ValidationSchema<{ id: string }> = {
         params: z.object({
-          id: z.string().uuid()
-        })
+          id: z.string().uuid(),
+        }),
       };
 
       app.get('/test/:id', validate(schema), (req: Request, res: Response) => {
         res.json({ success: true, id: req.params.id });
       });
 
-      const response = await request(app)
-        .get('/test/invalid-uuid');
+      const response = await request(app).get('/test/invalid-uuid');
 
       expect(response.status).toBe(400);
     });
@@ -153,10 +143,10 @@ describe('Validation Matrix', () => {
           user: z.object({
             profile: z.object({
               name: z.string(),
-              email: z.string().email()
-            })
-          })
-        })
+              email: z.string().email(),
+            }),
+          }),
+        }),
       };
 
       app.post('/test', validate(schema), (req: Request, res: Response) => {
@@ -169,9 +159,9 @@ describe('Validation Matrix', () => {
           user: {
             profile: {
               name: 'Bob',
-              email: 'bob@example.com'
-            }
-          }
+              email: 'bob@example.com',
+            },
+          },
         });
 
       expect(response.status).toBe(200);
@@ -183,10 +173,10 @@ describe('Validation Matrix', () => {
           user: z.object({
             profile: z.object({
               name: z.string(),
-              email: z.string().email()
-            })
-          })
-        })
+              email: z.string().email(),
+            }),
+          }),
+        }),
       };
 
       app.post('/test', validate(schema), (req: Request, res: Response) => {
@@ -199,9 +189,9 @@ describe('Validation Matrix', () => {
           user: {
             profile: {
               name: 'Bob',
-              email: 'not-an-email'
-            }
-          }
+              email: 'not-an-email',
+            },
+          },
         });
 
       expect(response.status).toBe(400);
@@ -211,11 +201,13 @@ describe('Validation Matrix', () => {
     it('should validate arrays of objects', async () => {
       const schema: ValidationSchema = {
         body: z.object({
-          items: z.array(z.object({
-            id: z.string().uuid(),
-            quantity: z.number().min(1)
-          }))
-        })
+          items: z.array(
+            z.object({
+              id: z.string().uuid(),
+              quantity: z.number().min(1),
+            })
+          ),
+        }),
       };
 
       app.post('/test', validate(schema), (req: Request, res: Response) => {
@@ -227,8 +219,8 @@ describe('Validation Matrix', () => {
         .send({
           items: [
             { id: '550e8400-e29b-41d4-a716-446655440000', quantity: 5 },
-            { id: '660e8400-e29b-41d4-a716-446655440001', quantity: 10 }
-          ]
+            { id: '660e8400-e29b-41d4-a716-446655440001', quantity: 10 },
+          ],
         });
 
       expect(response.status).toBe(200);
@@ -238,11 +230,13 @@ describe('Validation Matrix', () => {
     it('should reject arrays with invalid nested objects', async () => {
       const schema: ValidationSchema = {
         body: z.object({
-          items: z.array(z.object({
-            id: z.string().uuid(),
-            quantity: z.number().min(1)
-          }))
-        })
+          items: z.array(
+            z.object({
+              id: z.string().uuid(),
+              quantity: z.number().min(1),
+            })
+          ),
+        }),
       };
 
       app.post('/test', validate(schema), (req: Request, res: Response) => {
@@ -254,8 +248,8 @@ describe('Validation Matrix', () => {
         .send({
           items: [
             { id: '550e8400-e29b-41d4-a716-446655440000', quantity: 5 },
-            { id: 'invalid', quantity: 10 }
-          ]
+            { id: 'invalid', quantity: 10 },
+          ],
         });
 
       expect(response.status).toBe(400);
@@ -274,7 +268,7 @@ describe('Deep Object Hallucination Blocking', () => {
         const schema = z.object({
           id: z.string().uuid(),
           name: z.string(),
-          value: z.number()
+          value: z.number(),
         });
 
         const result = DeepObjectValidator.validate(
@@ -286,7 +280,7 @@ describe('Deep Object Hallucination Blocking', () => {
         expect(result.data).toEqual({
           id: '550e8400-e29b-41d4-a716-446655440000',
           name: 'test',
-          value: 42
+          value: 42,
         });
       });
 
@@ -302,7 +296,7 @@ describe('Deep Object Hallucination Blocking', () => {
       it('should reject missing required fields', () => {
         const schema = z.object({
           id: z.string().uuid(),
-          name: z.string()
+          name: z.string(),
         });
 
         const result = DeepObjectValidator.validate({ id: 'test' }, schema);
@@ -314,7 +308,7 @@ describe('Deep Object Hallucination Blocking', () => {
       it('should detect extra keys in strict mode', () => {
         const schema = z.object({
           id: z.string(),
-          name: z.string()
+          name: z.string(),
         });
 
         const result = DeepObjectValidator.validate(
@@ -337,9 +331,9 @@ describe('Deep Object Hallucination Blocking', () => {
         const result = DeepObjectValidator.validateDeep({
           level1: {
             level2: {
-              level3: 'deep'
-            }
-          }
+              level3: 'deep',
+            },
+          },
         });
 
         expect(result.success).toBe(true);
@@ -409,10 +403,12 @@ describe('Deep Object Hallucination Blocking', () => {
 
   describe('createHallucinationGuard middleware', () => {
     it('should allow valid request body', async () => {
-      app.use(createHallucinationGuard({
-        maxDepth: 5,
-        expectedKeys: ['user', 'data']
-      }));
+      app.use(
+        createHallucinationGuard({
+          maxDepth: 5,
+          expectedKeys: ['user', 'data'],
+        })
+      );
 
       app.post('/test', (req: Request, res: Response) => {
         res.json({ success: true });
@@ -426,11 +422,13 @@ describe('Deep Object Hallucination Blocking', () => {
     });
 
     it('should reject request with unexpected keys', async () => {
-      app.use(createHallucinationGuard({
-        maxDepth: 5,
-        expectedKeys: ['user', 'data'],
-        allowExtraKeys: false
-      }));
+      app.use(
+        createHallucinationGuard({
+          maxDepth: 5,
+          expectedKeys: ['user', 'data'],
+          allowExtraKeys: false,
+        })
+      );
 
       app.post('/test', (req: Request, res: Response) => {
         res.json({ success: true });
@@ -445,9 +443,11 @@ describe('Deep Object Hallucination Blocking', () => {
     });
 
     it('should reject deeply nested objects beyond max depth', async () => {
-      app.use(createHallucinationGuard({
-        maxDepth: 2
-      }));
+      app.use(
+        createHallucinationGuard({
+          maxDepth: 2,
+        })
+      );
 
       app.post('/test', (req: Request, res: Response) => {
         res.json({ success: true });
@@ -472,19 +472,19 @@ describe('Express Integration Tests', () => {
       const schema: ValidationSchema<{ user: { name: string }; page: number }> = {
         body: z.object({
           user: z.object({
-            name: z.string().min(1)
-          })
+            name: z.string().min(1),
+          }),
         }),
         query: z.object({
-          page: z.coerce.number().int().min(1).optional()
-        })
+          page: z.coerce.number().int().min(1).optional(),
+        }),
       };
 
       app.post('/api/users', validate(schema), (req: Request, res: Response) => {
         res.json({
           success: true,
           user: req.body.user.name,
-          page: req.query.page ? parseInt(req.query.page as string, 10) : 1
+          page: req.query.page ? parseInt(req.query.page as string, 10) : 1,
         });
       });
 
@@ -501,17 +501,15 @@ describe('Express Integration Tests', () => {
     it('should handle validation errors gracefully', async () => {
       const schema: ValidationSchema = {
         body: z.object({
-          email: z.string().email()
-        })
+          email: z.string().email(),
+        }),
       };
 
       app.post('/api/test', validate(schema), (req: Request, res: Response) => {
         res.json({ success: true });
       });
 
-      const response = await request(app)
-        .post('/api/test')
-        .send({ email: 'invalid-email' });
+      const response = await request(app).post('/api/test').send({ email: 'invalid-email' });
 
       expect(response.status).toBe(400);
       expect(response.body.success).toBe(false);
@@ -523,23 +521,21 @@ describe('Express Integration Tests', () => {
   describe('Edge cases', () => {
     it('should handle empty request body', async () => {
       const schema: ValidationSchema = {
-        body: z.object({})
+        body: z.object({}),
       };
 
       app.post('/test', validate(schema), (req: Request, res: Response) => {
         res.json({ success: true });
       });
 
-      const response = await request(app)
-        .post('/test')
-        .send({});
+      const response = await request(app).post('/test').send({});
 
       expect(response.status).toBe(200);
     });
 
     it('should handle null request body', async () => {
       const schema: ValidationSchema = {
-        body: z.any().nullable()
+        body: z.any().nullable(),
       };
 
       app.post('/test', validate(schema), (req: Request, res: Response) => {
@@ -556,8 +552,8 @@ describe('Express Integration Tests', () => {
     it('should handle special characters in strings', async () => {
       const schema: ValidationSchema = {
         body: z.object({
-          text: z.string()
-        })
+          text: z.string(),
+        }),
       };
 
       app.post('/test', validate(schema), (req: Request, res: Response) => {
@@ -575,17 +571,15 @@ describe('Express Integration Tests', () => {
     it('should handle unicode characters', async () => {
       const schema: ValidationSchema = {
         body: z.object({
-          name: z.string()
-        })
+          name: z.string(),
+        }),
       };
 
       app.post('/test', validate(schema), (req: Request, res: Response) => {
         res.json({ success: true, name: req.body.name });
       });
 
-      const response = await request(app)
-        .post('/test')
-        .send({ name: '日本語テスト 🎉' });
+      const response = await request(app).post('/test').send({ name: '日本語テスト 🎉' });
 
       expect(response.status).toBe(200);
       expect(response.body.name).toBe('日本語テスト 🎉');
@@ -596,17 +590,15 @@ describe('Express Integration Tests', () => {
 
       const schema: ValidationSchema = {
         body: z.object({
-          items: z.array(z.object({ id: z.number(), value: z.string() }))
-        })
+          items: z.array(z.object({ id: z.number(), value: z.string() })),
+        }),
       };
 
       app.post('/test', validate(schema), (req: Request, res: Response) => {
         res.json({ success: true, count: req.body.items.length });
       });
 
-      const response = await request(app)
-        .post('/test')
-        .send({ items: largeArray });
+      const response = await request(app).post('/test').send({ items: largeArray });
 
       expect(response.status).toBe(200);
       expect(response.body.count).toBe(1000);
@@ -622,8 +614,8 @@ describe('Sanity Checks', () => {
   it('should pass basic validation', async () => {
     const schema: ValidationSchema = {
       body: z.object({
-        id: z.string().uuid()
-      })
+        id: z.string().uuid(),
+      }),
     };
 
     app.post('/test', validate(schema), (req: Request, res: Response) => {
@@ -640,17 +632,15 @@ describe('Sanity Checks', () => {
   it('should fail on type mismatch', async () => {
     const schema: ValidationSchema = {
       body: z.object({
-        count: z.number()
-      })
+        count: z.number(),
+      }),
     };
 
     app.post('/test', validate(schema), (req: Request, res: Response) => {
       res.json({ success: true });
     });
 
-    const response = await request(app)
-      .post('/test')
-      .send({ count: 'not-a-number' });
+    const response = await request(app).post('/test').send({ count: 'not-a-number' });
 
     expect(response.status).toBe(400);
   });

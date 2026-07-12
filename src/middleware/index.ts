@@ -4,7 +4,7 @@ export {
   createHallucinationGuard,
   type ValidationResult,
   type ValidationSchema,
-  type ValidatorOptions
+  type ValidatorOptions,
 } from './validator.js';
 
 export { default } from './validator.js';

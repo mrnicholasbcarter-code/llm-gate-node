@@ -98,7 +98,7 @@ export function validate<T>(input: ValidatorOptions<T> | ValidationSchema<T>) {
     if (errors.length > 0) {
       res.status(400).json({
         success: false,
-        errors
+        errors,
       });
       return;
     }
@@ -124,7 +124,7 @@ export class DeepObjectValidator {
     if (typeof obj !== 'object' || obj === null) {
       return {
         success: false,
-        errors: ['Input must be an object']
+        errors: ['Input must be an object'],
       };
     }
 
@@ -135,24 +135,28 @@ export class DeepObjectValidator {
     if (result.success) {
       return {
         success: true,
-        data: result.data
+        data: result.data,
       };
     }
 
     return {
       success: false,
-      errors: result.error.errors.map((e: { message: string }) => e.message)
+      errors: result.error.errors.map((e: { message: string }) => e.message),
     };
   }
 
   /**
    * Recursively validates all nested objects in a structure
    */
-  static validateDeep(obj: unknown, depth: number = 0, maxDepth: number = 10): ValidationResult<unknown> {
+  static validateDeep(
+    obj: unknown,
+    depth: number = 0,
+    maxDepth: number = 10
+  ): ValidationResult<unknown> {
     if (depth > maxDepth) {
       return {
         success: false,
-        errors: [`Maximum validation depth (${maxDepth}) exceeded`]
+        errors: [`Maximum validation depth (${maxDepth}) exceeded`],
       };
     }
 
@@ -192,7 +196,7 @@ export class DeepObjectValidator {
     if (typeof response !== 'object' || response === null) {
       return {
         success: false,
-        errors: ['Response must be an object']
+        errors: ['Response must be an object'],
       };
     }
 
@@ -202,7 +206,7 @@ export class DeepObjectValidator {
     if (extraKeys.length > 0 && !allowExtraKeys) {
       return {
         success: false,
-        errors: [`Unexpected keys detected (potential hallucination): ${extraKeys.join(', ')}`]
+        errors: [`Unexpected keys detected (potential hallucination): ${extraKeys.join(', ')}`],
       };
     }
 
@@ -211,7 +215,7 @@ export class DeepObjectValidator {
     if (suspiciousPatterns.length > 0) {
       return {
         success: false,
-        errors: [`Suspicious patterns detected: ${suspiciousPatterns.join(', ')}`]
+        errors: [`Suspicious patterns detected: ${suspiciousPatterns.join(', ')}`],
       };
     }
 
@@ -240,13 +244,15 @@ export class DeepObjectValidator {
         }
       } else {
         const entries = Object.entries(obj as Record<string, unknown>);
-        
+
         // Check for empty string values in critical fields
         for (const [key, value] of entries) {
           if (value === '') {
             patterns.push(`empty string at ${path ? `${path}.${key}` : key}`);
           }
-          patterns.push(...DeepObjectValidator.findSuspiciousPatterns(value, `${path ? `${path}.${key}` : key}`));
+          patterns.push(
+            ...DeepObjectValidator.findSuspiciousPatterns(value, `${path ? `${path}.${key}` : key}`)
+          );
         }
       }
     }
@@ -272,17 +278,21 @@ export function createHallucinationGuard(options: {
       if (!result.success) {
         res.status(400).json({
           success: false,
-          errors: result.errors
+          errors: result.errors,
         });
         return;
       }
 
       if (expectedKeys.length > 0) {
-        const detection = DeepObjectValidator.detectHallucination(req.body, expectedKeys, allowExtraKeys);
+        const detection = DeepObjectValidator.detectHallucination(
+          req.body,
+          expectedKeys,
+          allowExtraKeys
+        );
         if (!detection.success) {
           res.status(400).json({
             success: false,
-            errors: detection.errors
+            errors: detection.errors,
           });
           return;
         }
@@ -295,7 +305,7 @@ export function createHallucinationGuard(options: {
       if (!result.success) {
         res.status(500).json({
           success: false,
-          errors: ['Response contains hallucination patterns']
+          errors: ['Response contains hallucination patterns'],
         });
         return;
       }
