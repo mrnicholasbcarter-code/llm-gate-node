@@ -18,3 +18,4 @@ patch_*.py
 *.bak
 .env
 .DS_Store
+node_build.log
