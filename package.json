@@ -56,7 +56,7 @@
   ],
   "dependencies": {
     "@types/express": "^5.0.6",
-    "zod": "^3.22.4"
+    "zod": "^4.4.3"
   },
   "peerDependencies": {
     "express": ">=5.0.0 <6"
