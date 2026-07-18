@@ -2,14 +2,56 @@
   "name": "@nickhq/llm-gate-node",
   "version": "0.1.0",
   "description": "Enterprise LLM Criticality Router middleware for Express and Next.js",
+  "license": "MIT",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./middleware": {
+      "types": "./dist/middleware/index.d.ts",
+      "default": "./dist/middleware/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=18"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mrnicholasbcarter-code/llm-gate-node.git"
+  },
+  "homepage": "https://github.com/mrnicholasbcarter-code/llm-gate-node#readme",
+  "bugs": {
+    "url": "https://github.com/mrnicholasbcarter-code/llm-gate-node/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsc",
     "test": "jest",
     "lint": "tsc --noEmit",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "pack:dry-run": "npm pack --dry-run"
   },
+  "keywords": [
+    "llm",
+    "gateway",
+    "middleware",
+    "express",
+    "openai-compatible",
+    "routing",
+    "zod"
+  ],
   "dependencies": {
     "zod": "^3.22.4"
   },

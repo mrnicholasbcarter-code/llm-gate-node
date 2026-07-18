@@ -41,9 +41,15 @@ graph LR
 
 The package does not read private `9router` or OmniRoute databases. Quota and headroom integrations must use documented APIs or remain explicitly unknown.
 
-## Installation from source
+## Installation
 
-The npm publication is not yet verified. Use a source checkout for development:
+Install from npm once a published release exists:
+
+```bash
+npm install @nickhq/llm-gate-node
+```
+
+For local development from source:
 
 ```bash
 git clone https://github.com/mrnicholasbcarter-code/llm-gate-node.git
@@ -53,13 +59,13 @@ npm test -- --runInBand
 npm run build
 ```
 
-The package boundary is checked with `npm pack --dry-run`. Development files, coverage, logs, tests, source, workflows, and generated tarballs must not ship.
+Publication evidence for the package boundary is gathered with `npm pack --dry-run`. Only the built runtime (`dist/**`) plus package metadata and top-level release documents (`README.md`, `LICENSE`, `CHANGELOG.md`) should ship. Development files, coverage, logs, tests, source, workflows, and generated tarballs must not ship.
 
 ## Quickstart
 
 ```typescript
 import express from 'express';
-import { LlmGateNode } from './dist/index.js';
+import { LlmGateNode } from '@nickhq/llm-gate-node';
 
 const app = express();
 app.use(express.json());

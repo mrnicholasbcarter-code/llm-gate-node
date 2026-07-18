@@ -15,6 +15,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CodeQL security analysis
 - Automated linting and formatting
 
+### Changed
+
+- Declared explicit npm package exports, shipped-file allowlist, Node engine floor, and publication metadata for the upcoming package release.
+- Documented package-boundary publication evidence and npm install usage in the README.
+
 ## [0.1.0] - 2024-01-15
 
 ### Added
