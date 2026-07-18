@@ -13,7 +13,10 @@ import {
 
 const validRequest = {
   model: 'gpt-4o-mini',
-  messages: [{ role: 'developer', content: 'Be concise' }, { role: 'user', content: 'Summarize this document' }],
+  messages: [
+    { role: 'developer', content: 'Be concise' },
+    { role: 'user', content: 'Summarize this document' },
+  ],
   temperature: 0.4,
   top_p: 0.9,
   max_tokens: 256,
@@ -393,7 +396,7 @@ describe('LlmGateNode', () => {
     expect(recorder.headers.get('content-type')).toBe('text/event-stream');
     expect(recorder.headers.get('cache-control')).toBe('no-cache');
     expect(recorder.ended).toBe(true);
-    expect(recorder.writes.map((chunk) => chunk.toString()).join('')).toBe(
+    expect(recorder.writes.map(chunk => chunk.toString()).join('')).toBe(
       'data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1720000000,"model":"gpt-4o-mini","choices":[{"index":0,"delta":{"content":"Hel"},"logprobs":null,"finish_reason":null}]}\n\n' +
         'data: [DONE]\n\n'
     );
@@ -721,10 +724,6 @@ describe('LlmGateNode', () => {
       ['message missing role', { ...validRequest, messages: [{ content: 'hi' }] }],
       ['message unknown role', { ...validRequest, messages: [{ role: 'critic', content: 'hi' }] }],
       ['message numeric content', { ...validRequest, messages: [{ role: 'user', content: 7 }] }],
-      [
-        'message has extra field',
-        { ...validRequest, messages: [{ role: 'user', content: 'hi', extra: true }] },
-      ],
       ['temperature below range', { ...validRequest, temperature: -0.1 }],
       ['temperature above range', { ...validRequest, temperature: 2.1 }],
       ['temperature as string', { ...validRequest, temperature: '0.5' }],
@@ -741,19 +740,24 @@ describe('LlmGateNode', () => {
       ['top_logprobs above range', { ...validRequest, top_logprobs: 21 }],
       ['seed is float', { ...validRequest, seed: 0.5 }],
       ['tool missing function', { ...validRequest, tools: [{ type: 'function' }] }],
-      ['tool has wrong type', { ...validRequest, tools: [{ type: 'search', function: { name: 'x' } }] }],
+      [
+        'tool has wrong type',
+        { ...validRequest, tools: [{ type: 'search', function: { name: 'x' } }] },
+      ],
       ['tool_choice invalid string', { ...validRequest, tool_choice: 'always' }],
       [
         'tool_choice missing function name',
         { ...validRequest, tool_choice: { type: 'function', function: {} } },
       ],
       ['parallel_tool_calls is string', { ...validRequest, parallel_tool_calls: 'true' }],
-      ['response_format text has extra key', { ...validRequest, response_format: { type: 'text', extra: true } }],
       [
         'response_format json_schema missing json_schema',
         { ...validRequest, response_format: { type: 'json_schema' } },
       ],
-      ['stream_options invalid shape', { ...validRequest, stream_options: { include_usage: 'yes' } }],
+      [
+        'stream_options invalid shape',
+        { ...validRequest, stream_options: { include_usage: 'yes' } },
+      ],
       ['metadata contains nested object', { ...validRequest, metadata: { trace: { id: 'bad' } } }],
       ['stream is string', { ...validRequest, stream: 'false' }],
       ['user is empty', { ...validRequest, user: '' }],
@@ -773,6 +777,22 @@ describe('LlmGateNode', () => {
       const result = OpenAIChatCompletionRequestSchema.safeParse(payload);
 
       expect(result.success).toBe(false);
+    });
+
+    it('preserves forward-compatible message and response-format fields', () => {
+      const payload = {
+        ...validRequest,
+        messages: [{ role: 'user', content: 'hi', 'x-message-extra': true }],
+        response_format: { type: 'text', 'x-format-extra': 'kept' },
+      };
+
+      const result = OpenAIChatCompletionRequestSchema.safeParse(payload);
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.messages[0]['x-message-extra']).toBe(true);
+        expect(result.data.response_format?.['x-format-extra']).toBe('kept');
+      }
     });
   });
 
@@ -822,7 +842,10 @@ describe('LlmGateNode', () => {
       ],
       [
         'choice invalid logprobs shape',
-        { ...validResponse, choices: [{ ...validResponse.choices[0], logprobs: { content: [{}], extra: true } }] },
+        {
+          ...validResponse,
+          choices: [{ ...validResponse.choices[0], logprobs: { content: [{}], extra: true } }],
+        },
       ],
       [
         'usage negative prompt tokens',
@@ -873,7 +896,6 @@ describe('LlmGateNode', () => {
       ['negative created', { ...validChunk, created: -1 }],
       ['choices is object', { ...validChunk, choices: { index: 0 } }],
       ['delta missing', { ...validChunk, choices: [{ index: 0, finish_reason: null }] }],
-      ['delta has extra field', { ...validChunk, choices: [{ ...validChunk.choices[0], delta: { content: 'x', extra: true } }] }],
       [
         'delta tool call invalid type',
         {
@@ -889,13 +911,40 @@ describe('LlmGateNode', () => {
           ],
         },
       ],
-      ['finish_reason invalid', { ...validChunk, choices: [{ ...validChunk.choices[0], finish_reason: 'done' }] }],
+      [
+        'finish_reason invalid',
+        { ...validChunk, choices: [{ ...validChunk.choices[0], finish_reason: 'done' }] },
+      ],
       ['usage invalid', { ...validChunk, usage: { prompt_tokens: 1, completion_tokens: 1 } }],
-      ['prototype pollution in chunk', JSON.parse('{"id":"chatcmpl-test","object":"chat.completion.chunk","created":1,"model":"gpt-4","choices":[],"__proto__":{"admin":true}}')],
+      [
+        'prototype pollution in chunk',
+        JSON.parse(
+          '{"id":"chatcmpl-test","object":"chat.completion.chunk","created":1,"model":"gpt-4","choices":[],"__proto__":{"admin":true}}'
+        ),
+      ],
     ])('rejects incorrect OpenAI chunk JSON: %s', (_name, payload) => {
       const result = OpenAIChatCompletionChunkSchema.safeParse(payload);
 
       expect(result.success).toBe(false);
+    });
+
+    it('preserves forward-compatible streaming delta fields', () => {
+      const payload = {
+        ...validChunk,
+        choices: [
+          {
+            ...validChunk.choices[0],
+            delta: { content: 'x', 'x-delta-extra': true },
+          },
+        ],
+      };
+
+      const result = OpenAIChatCompletionChunkSchema.safeParse(payload);
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.choices[0].delta['x-delta-extra']).toBe(true);
+      }
     });
   });
 });

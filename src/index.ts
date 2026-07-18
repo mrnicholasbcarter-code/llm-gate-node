@@ -4,17 +4,50 @@ import * as https from 'https';
 
 const UNSAFE_OBJECT_KEYS = new Set(['__proto__', 'prototype', 'constructor']);
 
+function hasExpectedPrototype(value: object, array: boolean): boolean {
+  const prototype = Object.getPrototypeOf(value);
+  if (prototype === null) {
+    return false;
+  }
+  const parent = Object.getPrototypeOf(prototype);
+  if (!array) {
+    return parent === null;
+  }
+  return (
+    parent !== null &&
+    Object.getPrototypeOf(parent) === null &&
+    Object.prototype.hasOwnProperty.call(prototype, 'push')
+  );
+}
+
 function addUnsafeKeyIssues(
   value: unknown,
   ctx: z.RefinementCtx,
   path: Array<string | number> = []
 ): void {
   if (Array.isArray(value)) {
+    if (!hasExpectedPrototype(value, true)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Array prototype is not allowed.',
+        path,
+      });
+      return;
+    }
     value.forEach((item, index) => addUnsafeKeyIssues(item, ctx, [...path, index]));
     return;
   }
 
   if (!value || typeof value !== 'object') {
+    return;
+  }
+
+  if (!hasExpectedPrototype(value, false)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Object prototype is not allowed.',
+      path,
+    });
     return;
   }
 
@@ -32,35 +65,41 @@ function addUnsafeKeyIssues(
 }
 
 function safeObject<T extends z.ZodRawShape>(shape: T) {
-  return z.object(shape).passthrough().superRefine((value, ctx) => addUnsafeKeyIssues(value, ctx));
+  return z
+    .object(shape)
+    .passthrough()
+    .superRefine((value, ctx) => addUnsafeKeyIssues(value, ctx));
+}
+
+function guardRawInput<T extends z.ZodTypeAny>(schema: T): T {
+  return z
+    .unknown()
+    .superRefine((value, ctx) => addUnsafeKeyIssues(value, ctx))
+    .pipe(schema) as unknown as T;
 }
 
 const OpenAIFunctionCallSchema = safeObject({
-    name: z.string().min(1),
-    arguments: z.string(),
-  })
-  ;
+  name: z.string().min(1),
+  arguments: z.string(),
+});
 
 const OpenAIChatToolFunctionSchema = safeObject({
-    name: z.string().min(1),
-    description: z.string().min(1).optional(),
-    parameters: z.record(z.string(), z.unknown()).optional(),
-    strict: z.boolean().optional(),
-  })
-  ;
+  name: z.string().min(1),
+  description: z.string().min(1).optional(),
+  parameters: z.record(z.string(), z.unknown()).optional(),
+  strict: z.boolean().optional(),
+});
 
 const OpenAIChatToolSchema = safeObject({
-    type: z.literal('function'),
-    function: OpenAIChatToolFunctionSchema,
-  })
-  ;
+  type: z.literal('function'),
+  function: OpenAIChatToolFunctionSchema,
+});
 
 const OpenAIChatToolCallSchema = safeObject({
-    id: z.string().min(1),
-    type: z.literal('function'),
-    function: OpenAIFunctionCallSchema,
-  })
-  ;
+  id: z.string().min(1),
+  type: z.literal('function'),
+  function: OpenAIFunctionCallSchema,
+});
 
 const OpenAIResponseFormatSchema = z.union([
   safeObject({
@@ -70,38 +109,49 @@ const OpenAIResponseFormatSchema = z.union([
     type: z.literal('json_object'),
   }),
   safeObject({
-      type: z.literal('json_schema'),
-      json_schema: safeObject({
-        name: z.string().min(1),
-        description: z.string().min(1).optional(),
-        schema: z.record(z.string(), z.unknown()).optional(),
-        strict: z.boolean().optional(),
-      }),
-    })
-  ,
+    type: z.literal('json_schema'),
+    json_schema: safeObject({
+      name: z.string().min(1),
+      description: z.string().min(1).optional(),
+      schema: z.record(z.string(), z.unknown()).optional(),
+      strict: z.boolean().optional(),
+    }),
+  }),
 ]);
 
 const OpenAILogitBiasSchema = z.record(z.string(), z.number());
 
 const OpenAIStreamOptionsSchema = safeObject({
-    include_usage: z.boolean().optional(),
-  })
-  ;
+  include_usage: z.boolean().optional(),
+});
 
 const OpenAIUsageSchema = safeObject({
-    prompt_tokens: z.number().int().nonnegative(),
-    completion_tokens: z.number().int().nonnegative(),
-    total_tokens: z.number().int().nonnegative(),
-    prompt_tokens_details: z.record(z.string(), z.number().int().nonnegative()).optional(),
-    completion_tokens_details: z.record(z.string(), z.number().int().nonnegative()).optional(),
-  })
-  ;
+  prompt_tokens: z.number().int().nonnegative(),
+  completion_tokens: z.number().int().nonnegative(),
+  total_tokens: z.number().int().nonnegative(),
+  prompt_tokens_details: z.record(z.string(), z.number().int().nonnegative()).optional(),
+  completion_tokens_details: z.record(z.string(), z.number().int().nonnegative()).optional(),
+});
+
+const OpenAITopLogprobSchema = safeObject({
+  token: z.string(),
+  logprob: z.number(),
+  bytes: z.array(z.number().int().min(0).max(255)).nullable().optional(),
+});
+
+const OpenAILogprobContentSchema = safeObject({
+  token: z.string(),
+  logprob: z.number(),
+  bytes: z.array(z.number().int().min(0).max(255)).nullable().optional(),
+  top_logprobs: z.array(OpenAITopLogprobSchema).optional(),
+});
 
 const OpenAILogprobsSchema = safeObject({
-    content: z.array(z.record(z.string(), z.unknown())).nullable().optional(),
-    refusal: z.array(z.record(z.string(), z.unknown())).nullable().optional(),
-  })
-  ;
+  content: z.array(OpenAILogprobContentSchema).nullable().optional(),
+  refusal: z.array(OpenAILogprobContentSchema).nullable().optional(),
+}).refine(value => value.content !== undefined || value.refusal !== undefined, {
+  message: 'logprobs must include content or refusal',
+}) as z.ZodType<Record<string, unknown>>;
 
 /**
  * Zod Schema representing an OpenAI-compatible Chat Message.
@@ -119,45 +169,51 @@ export const OpenAIChatMessageSchema = z
   .passthrough()
   .superRefine((value, ctx) => addUnsafeKeyIssues(value, ctx));
 
-export const OpenAIChatCompletionRequestSchema = z
-  .object({
-    model: z.string().min(1),
-    messages: z.array(OpenAIChatMessageSchema).min(1),
-    temperature: z.number().min(0).max(2).optional(),
-    top_p: z.number().min(0).max(1).optional(),
-    max_tokens: z.number().int().positive().optional(),
-    max_completion_tokens: z.number().int().positive().optional(),
-    n: z.number().int().positive().optional(),
-    stop: z.union([z.string(), z.array(z.string()).min(1)]).optional(),
-    presence_penalty: z.number().min(-2).max(2).optional(),
-    frequency_penalty: z.number().min(-2).max(2).optional(),
-    logit_bias: OpenAILogitBiasSchema.optional(),
-    logprobs: z.boolean().optional(),
-    top_logprobs: z.number().int().min(0).max(20).optional(),
-    seed: z.number().int().optional(),
-    tools: z.array(OpenAIChatToolSchema).min(1).optional(),
-    tool_choice: z.union([
-      z.enum(['none', 'auto', 'required']),
-      z
-        .object({
-          type: z.literal('function'),
-          function: z
+export const OpenAIChatCompletionRequestSchema = guardRawInput(
+  z
+    .object({
+      model: z.string().min(1),
+      messages: z.array(OpenAIChatMessageSchema).min(1),
+      temperature: z.number().min(0).max(2).optional(),
+      top_p: z.number().min(0).max(1).optional(),
+      max_tokens: z.number().int().positive().optional(),
+      max_completion_tokens: z.number().int().positive().optional(),
+      n: z.number().int().positive().optional(),
+      stop: z.union([z.string(), z.array(z.string()).min(1)]).optional(),
+      presence_penalty: z.number().min(-2).max(2).optional(),
+      frequency_penalty: z.number().min(-2).max(2).optional(),
+      logit_bias: OpenAILogitBiasSchema.optional(),
+      logprobs: z.boolean().optional(),
+      top_logprobs: z.number().int().min(0).max(20).optional(),
+      seed: z.number().int().optional(),
+      tools: z.array(OpenAIChatToolSchema).min(1).optional(),
+      tool_choice: z
+        .union([
+          z.enum(['none', 'auto', 'required']),
+          z
             .object({
-              name: z.string().min(1),
+              type: z.literal('function'),
+              function: z
+                .object({
+                  name: z.string().min(1),
+                })
+                .strict(),
             })
             .strict(),
-        })
-        .strict(),
-    ]).optional(),
-    parallel_tool_calls: z.boolean().optional(),
-    response_format: OpenAIResponseFormatSchema.optional(),
-    stream: z.boolean().optional(),
-    stream_options: OpenAIStreamOptionsSchema.optional(),
-    metadata: z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()])).optional(),
-    user: z.string().min(1).optional(),
-  })
-  .passthrough()
-  .superRefine((value, ctx) => addUnsafeKeyIssues(value, ctx));
+        ])
+        .optional(),
+      parallel_tool_calls: z.boolean().optional(),
+      response_format: OpenAIResponseFormatSchema.optional(),
+      stream: z.boolean().optional(),
+      stream_options: OpenAIStreamOptionsSchema.optional(),
+      metadata: z
+        .record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()]))
+        .optional(),
+      user: z.string().min(1).optional(),
+    })
+    .passthrough()
+    .superRefine((value, ctx) => addUnsafeKeyIssues(value, ctx))
+);
 
 export const OpenAIChatCompletionChoiceSchema = z
   .object({
@@ -172,19 +228,21 @@ export const OpenAIChatCompletionChoiceSchema = z
   .passthrough()
   .superRefine((value, ctx) => addUnsafeKeyIssues(value, ctx));
 
-export const OpenAIChatCompletionResponseSchema = z
-  .object({
-    id: z.string().min(1),
-    object: z.literal('chat.completion'),
-    created: z.number().int().nonnegative(),
-    model: z.string().min(1),
-    choices: z.array(OpenAIChatCompletionChoiceSchema).min(1),
-    usage: OpenAIUsageSchema.optional(),
-    system_fingerprint: z.string().min(1).optional(),
-    service_tier: z.string().min(1).optional(),
-  })
-  .passthrough()
-  .superRefine((value, ctx) => addUnsafeKeyIssues(value, ctx));
+export const OpenAIChatCompletionResponseSchema = guardRawInput(
+  z
+    .object({
+      id: z.string().min(1),
+      object: z.literal('chat.completion'),
+      created: z.number().int().nonnegative(),
+      model: z.string().min(1),
+      choices: z.array(OpenAIChatCompletionChoiceSchema).min(1),
+      usage: OpenAIUsageSchema.optional(),
+      system_fingerprint: z.string().min(1).optional(),
+      service_tier: z.string().min(1).optional(),
+    })
+    .passthrough()
+    .superRefine((value, ctx) => addUnsafeKeyIssues(value, ctx))
+);
 
 export const OpenAIChatCompletionChunkChoiceSchema = z
   .object({
@@ -228,19 +286,21 @@ export const OpenAIChatCompletionChunkChoiceSchema = z
   .passthrough()
   .superRefine((value, ctx) => addUnsafeKeyIssues(value, ctx));
 
-export const OpenAIChatCompletionChunkSchema = z
-  .object({
-    id: z.string().min(1),
-    object: z.literal('chat.completion.chunk'),
-    created: z.number().int().nonnegative(),
-    model: z.string().min(1),
-    choices: z.array(OpenAIChatCompletionChunkChoiceSchema),
-    usage: OpenAIUsageSchema.nullish(),
-    system_fingerprint: z.string().min(1).optional(),
-    service_tier: z.string().min(1).optional(),
-  })
-  .passthrough()
-  .superRefine((value, ctx) => addUnsafeKeyIssues(value, ctx));
+export const OpenAIChatCompletionChunkSchema = guardRawInput(
+  z
+    .object({
+      id: z.string().min(1),
+      object: z.literal('chat.completion.chunk'),
+      created: z.number().int().nonnegative(),
+      model: z.string().min(1),
+      choices: z.array(OpenAIChatCompletionChunkChoiceSchema),
+      usage: OpenAIUsageSchema.nullish(),
+      system_fingerprint: z.string().min(1).optional(),
+      service_tier: z.string().min(1).optional(),
+    })
+    .passthrough()
+    .superRefine((value, ctx) => addUnsafeKeyIssues(value, ctx))
+);
 
 export const RoutingDecisionSchema = z
   .object({
@@ -335,11 +395,11 @@ export class LlmGateNode {
     const config =
       typeof configOrModel === 'string' ? { primaryModel: configOrModel } : configOrModel;
     this.primaryModel = config.primaryModel || 'cc/claude-opus-4-8';
-    this.baseUrl =
-      config.baseUrl || process.env.OMNIROUTE_BASE_URL || 'http://127.0.0.1:20132/v1';
+    this.baseUrl = config.baseUrl || process.env.OMNIROUTE_BASE_URL || 'http://127.0.0.1:20132/v1';
     this.usageUrl =
       config.usageUrl || process.env.OMNIROUTE_API_BASE_URL || 'http://127.0.0.1:20132/api';
-    this.apiKey = config.apiKey || process.env.OMNIROUTE_API_KEY || process.env.OPENAI_API_KEY || '';
+    this.apiKey =
+      config.apiKey || process.env.OMNIROUTE_API_KEY || process.env.OPENAI_API_KEY || '';
     this.providerConnIds = config.providerConnIds || {};
     this.transportAdapter = this.normalizeTransportAdapter(config.transportAdapter);
     this.autoDetectDependencies();
@@ -790,8 +850,8 @@ export class LlmGateNode {
         const eventText = buffered.slice(0, boundary);
         const lines = eventText
           .split(/\r?\n/)
-          .filter((line) => line.startsWith('data:'))
-          .map((line) => line.slice(5).trimStart());
+          .filter(line => line.startsWith('data:'))
+          .map(line => line.slice(5).trimStart());
 
         if (lines.length > 0) {
           const error = this.validateSseEventData(lines.join('\n'));
@@ -810,8 +870,8 @@ export class LlmGateNode {
     if (buffered.length > 0) {
       const lines = buffered
         .split(/\r?\n/)
-        .filter((line) => line.startsWith('data:'))
-        .map((line) => line.slice(5).trimStart());
+        .filter(line => line.startsWith('data:'))
+        .map(line => line.slice(5).trimStart());
 
       if (lines.length > 0) {
         const error = this.validateSseEventData(lines.join('\n'));
