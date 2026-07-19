@@ -1,5 +1,5 @@
 {
-  "name": "@nickhq/llm-gate-node",
+  "name": "@llm-gate/node",
   "version": "0.1.0",
   "description": "Enterprise LLM Criticality Router middleware for Express and Next.js",
   "license": "MIT",
