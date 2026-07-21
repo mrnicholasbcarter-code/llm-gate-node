@@ -1,7 +1,7 @@
 {
-  "name": "@llm-gate/node",
+  "name": "@verdict/node",
   "version": "0.1.0",
-  "description": "Enterprise LLM Criticality Router middleware for Express and Next.js",
+  "description": "Enterprise LLM Criticality Router middleware for Express, Next.js — policy-gated, availability-aware routing control plane",
   "license": "MIT",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -27,11 +27,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/mrnicholasbcarter-code/llm-gate-node.git"
+    "url": "git+https://github.com/verdict/verdict-node.git"
   },
-  "homepage": "https://github.com/mrnicholasbcarter-code/llm-gate-node#readme",
+  "homepage": "https://github.com/verdict/verdict-node#readme",
   "bugs": {
-    "url": "https://github.com/mrnicholasbcarter-code/llm-gate-node/issues"
+    "url": "https://github.com/verdict/verdict-node/issues"
   },
   "publishConfig": {
     "access": "public"
@@ -47,11 +47,13 @@
   },
   "keywords": [
     "llm",
-    "gateway",
+    "routing",
+    "ai",
+    "control-plane",
+    "safety",
     "middleware",
     "express",
     "openai-compatible",
-    "routing",
     "zod"
   ],
   "dependencies": {
@@ -71,6 +73,6 @@
     "prettier": "^3.9.5",
     "supertest": "^7.2.2",
     "ts-jest": "^29.4.11",
-    "typescript": "^5.9.2"
+    "typescript": "~5.9.3"
   }
 }

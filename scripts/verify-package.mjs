@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os';
 import { basename, join, resolve } from 'node:path';
 
-const packageName = '@nickhq/llm-gate-node';
+const packageName = '@verdict/node';
 const allowedTopLevel = new Set(['CHANGELOG.md', 'LICENSE', 'README.md', 'dist', 'package.json']);
 const requiredFiles = new Set([
   'CHANGELOG.md',
@@ -65,7 +65,7 @@ function assertPackageInventory(files) {
   }
 }
 
-const workspace = mkdtempSync(join(tmpdir(), 'llm-gate-node-package-'));
+const workspace = mkdtempSync(join(tmpdir(), 'verdict-node-package-'));
 const homeDirectory = join(workspace, 'home');
 const packDirectory = join(workspace, 'pack');
 const consumerDirectory = join(workspace, 'consumer');
@@ -94,7 +94,7 @@ try {
   );
   writeFileSync(
     join(consumerDirectory, 'package.json'),
-    `${JSON.stringify({ name: 'llm-gate-node-package-smoke', private: true, type: 'module' }, null, 2)}\n`,
+    `${JSON.stringify({ name: 'verdict-node-package-smoke', private: true, type: 'module' }, null, 2)}\n`,
     'utf8'
   );
 
@@ -155,7 +155,7 @@ void validate;
 
   const installedPackage = JSON.parse(
     readFileSync(
-      join(consumerDirectory, 'node_modules', '@nickhq', 'llm-gate-node', 'package.json'),
+      join(consumerDirectory, 'node_modules', '@verdict', 'node', 'package.json'),
       'utf8'
     )
   );

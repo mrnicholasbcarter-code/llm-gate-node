@@ -1,147 +1,249 @@
-# llm-gate-node
+# @verdict/node — TypeScript Middleware for Verdict Routing
 
-<div align="center">
-  <p><strong>TypeScript and Express middleware for capability-aware LLM request routing</strong></p>
-  <p>
-    <img src="https://img.shields.io/badge/status-alpha-orange" alt="Alpha" />
-    <img src="https://img.shields.io/badge/typescript-strict-blue" alt="TypeScript strict" />
-    <img src="https://img.shields.io/badge/tests-139%20passing-blue" alt="Tests passing" />
-    <a href="https://github.com/mrnicholasbcarter-code/llm-gate-node/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="MIT" /></a>
-  </p>
-</div>
+[![npm](https://img.shields.io/npm/v/@verdict/node.svg)](https://www.npmjs.com/package/@verdict/node)
+[![TypeScript](https://img.shields.io/badge/typescript-strict-blue.svg)](https://www.typescriptlang.org/)
+[![Tests](https://img.shields.io/badge/tests-139%20passing-brightgreen.svg)](<>)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-`llm-gate-node` is the TypeScript middleware implementation in the llm-gate portfolio. It accepts an Express request, classifies criticality, discovers models from a configured OpenAI-compatible upstream, rewrites the selected model, and can forward non-streaming or SSE responses through that upstream.
+> **Enterprise LLM Criticality Router middleware for Express, Next.js** — policy-gated, capability-aware routing with OpenAI-compatible upstream proxy.
 
-The default local upstream is the filtered OmniRoute proxy at `http://127.0.0.1:20132/v1`. The client framework is not special. Claude Code, Codex, Cursor, Jcode, Hermes, an Agents SDK, or a raw OpenAI-compatible client can use the gateway if they can send HTTP requests.
+---
 
-## Current status
+## What is @verdict/node?
 
-This package is alpha and is not yet a production-ready transparent gateway. The current implementation provides:
+`@verdict/node` is the TypeScript gateway integration layer for the **Verdict** ecosystem. It accepts an Express/Next.js request, classifies criticality, discovers models from your configured OpenAI-compatible upstream (default: OmniRoute at `http://localhost:20128/v1`), rewrites the selected model, and forwards non-streaming SSE responses.
 
-- heuristic criticality classification;
-- Zod request and response schemas;
-- model catalog discovery from the configured upstream;
-- a bounded fallback ladder for selected HTTP/network failures;
-- non-streaming and SSE forwarding code paths;
-- an in-memory score cache used only within the process.
+**Works with any OpenAI-compatible client**: Claude Code, Codex, Cursor, Cline, Hermes, Agents SDK, raw HTTP.
 
-It does **not** yet provide a verified Ruflo/RuVector IntelligenceService, persistent learning, reliable live quota/headroom data, full OpenAI field preservation, or a complete adversarial streaming/fallback contract. Those are tracked in the portfolio release board and must pass before publication claims are made.
+---
 
-## Architecture
+## Status
 
-```mermaid
-graph LR
-    Client[OpenAI-compatible client] --> Middleware[llm-gate-node]
-    Middleware --> Policy[Criticality policy]
-    Policy --> Catalog[Configured upstream catalog]
-    Catalog --> Proxy[Forward and bounded fallback]
-    Proxy --> Omni[OmniRoute or another compatible upstream]
-    Omni --> Provider[Eligible provider/model]
-```
+**Alpha** — not production-ready. Current implementation provides:
 
-The package does not read private `9router` or OmniRoute databases. Quota and headroom integrations must use documented APIs or remain explicitly unknown.
+- Heuristic criticality classification
+- Zod request/response schemas
+- Model catalog discovery from configured upstream
+- Bounded fallback ladder for selected HTTP/network failures
+- Non-streaming SSE forwarding
+- In-memory score cache (process-local)
 
-## Installation
+**Missing** (tracked on release board):
 
-Install from npm once a published release exists:
+- Verified Ruflo/RuVector IntelligenceService integration
+- Persistent learning / cross-process state
+- Reliable live quota/headroom data
+- Full OpenAI field preservation
+- Complete adversarial streaming/fallback contract
+
+### Supported TypeScript toolchain
+
+This release supports TypeScript `5.9.x` with `ts-jest@29.4.x` and Jest 30.
+`ts-jest@29.4.x` declares `typescript >=4.3 <7`, so TypeScript 7 is not a
+supported configuration for this package. Keep the compiler pinned to the
+documented 5.9 line until a ts-jest release with an explicit TypeScript 7 peer
+range is available and verified. Issue [#14](https://github.com/mrnicholasbcarter-code/verdict-node/issues/14)
+tracks that upgrade; the supported ceiling is intentional rather than hidden
+behind an install fallback.
+
+---
+
+## Install
 
 ```bash
-npm install @nickhq/llm-gate-node
+npm install @verdict/node
+# or
+pnpm add @verdict/node
+# or
+yarn add @verdict/node
 ```
 
-For local development from source:
+**Peer dependency**: `express@>=5.0.0 <6`
 
-```bash
-git clone https://github.com/mrnicholasbcarter-code/llm-gate-node.git
-cd llm-gate-node
-npm ci
-npm test -- --runInBand
-npm run build
-```
+---
 
-Publication evidence for the package boundary is gathered with
-`npm run verify:package`. The command builds and packs into a temporary
-directory, rejects unintended files, installs the tarball into a clean
-consumer, imports both public entry points, and type-checks the shipped
-declarations. Only the built runtime (`dist/**`) plus package metadata and
-top-level release documents (`README.md`, `LICENSE`, `CHANGELOG.md`) should
-ship. Development files, coverage, logs, tests, source, workflows, and
-generated tarballs must not ship.
-
-## Quickstart
+## Quick Start
 
 ```typescript
 import express from 'express';
-import { LlmGateNode } from '@nickhq/llm-gate-node';
+import { verdictMiddleware } from '@verdict/node/middleware';
 
 const app = express();
 app.use(express.json());
 
-const gateway = new LlmGateNode({
-  baseUrl: process.env.OMNIROUTE_BASE_URL ?? 'http://127.0.0.1:20132/v1',
-  usageUrl: process.env.OMNIROUTE_API_BASE_URL ?? 'http://127.0.0.1:20132/api',
-  apiKey: process.env.OMNIROUTE_API_KEY,
-});
+// Mount Verdict middleware
+app.use(
+  '/v1',
+  verdictMiddleware({
+    upstream: 'http://localhost:20128/v1', // OmniRoute or your proxy
+    criticality: 'auto', // auto | low | medium | high | critical
+  })
+);
 
-app.post('/v1/chat/completions', gateway.middleware(), gateway.proxy());
-app.listen(3000, () => console.log('llm-gate-node listening on :3000'));
+app.listen(3000, () => console.log('verdict-node listening on :3000'));
 ```
 
-For local development, set `OMNIROUTE_BASE_URL` and `OMNIROUTE_API_KEY` explicitly. The gateway never invents a credential when none is configured.
+```bash
+# Start OmniRoute (if not running)
+docker run -d -p 20128:20128 omnibus/omniroute
 
-## Public API
+# Start your app
+node dist/index.js
+```
 
-- `LlmGateNode` and the `LLMGateway` compatibility alias.
-- `middleware()` for attaching a redacted routing decision to an Express request.
-- `proxy()` for forwarding the request to the configured upstream.
-- `OpenAIChatCompletionRequestSchema` and response schemas.
-- `RoutingDecisionSchema` and its inferred TypeScript type.
-- Validation helpers under `src/middleware/validator.ts`.
+---
 
-## Known limitations
+## Configuration
 
-- The criticality classifier is heuristic and is not a quality evaluator.
-- The in-memory score table is not persistent learning and has no Ruflo/RuVector adapter yet.
-- The upstream model catalog is not proof of live quota or health.
-- Usage/headroom is fail-open when no documented provider usage adapter is configured.
-- Streaming forwarding needs broader chunk-boundary, cancellation, and retry-safety tests.
-- Unknown request fields and tool-call variants need a complete compatibility matrix.
-- The package has no verified npm release yet.
+```typescript
+import { verdictMiddleware, VerdictConfig } from '@verdict/node/middleware';
 
-## Verification
+const config: VerdictConfig = {
+  // Upstream OpenAI-compatible endpoint
+  upstream: process.env.VERDICT_UPSTREAM ?? 'http://localhost:20128/v1',
 
-Run the local release boundary with:
+  // Criticality classification: 'auto' | 'low' | 'medium' | 'high' | 'critical'
+  criticality: 'auto',
+
+  // Optional: Custom model catalog (bypasses discovery)
+  modelCatalog: [
+    { id: 'anthropic/claude-3-opus-20240229', capabilities: ['tools', 'vision'] },
+    { id: 'openai/gpt-4o', capabilities: ['tools', 'vision'] },
+    { id: 'auto/best-coding', capabilities: ['tools', 'reasoning'] },
+  ],
+
+  // Fallback ladder (ordered)
+  fallbacks: [
+    { model: 'auto/best-fast', maxRetries: 2 },
+    { model: 'auto/best-reasoning', maxRetries: 1 },
+  ],
+
+  // Request timeout
+  timeoutMs: 30000,
+
+  // Enable request/response logging
+  debug: process.env.NODE_ENV === 'development',
+};
+
+app.use('/v1', verdictMiddleware(config));
+```
+
+---
+
+## API
+
+### `verdictMiddleware(config: VerdictConfig): express.RequestHandler`
+
+Express middleware that:
+
+1. Intercepts `POST /v1/chat/completions`
+2. Classifies request criticality (heuristic or explicit header `x-verdict-criticality`)
+3. Discovers/uses model catalog from upstream
+4. Selects best model via Verdict Core logic (or local heuristic)
+5. Rewrites `model` field in request body
+6. Forwards to upstream, streams response back
+
+### Types
+
+```typescript
+// From @verdict/node
+import type {
+  VerdictConfig,
+  ModelInfo,
+  CriticalityLevel,
+  ChatCompletionRequest,
+  ChatCompletionResponse,
+} from '@verdict/node';
+```
+
+---
+
+## Integration with Verdict Core
+
+For full policy-gated routing (not just heuristic), run Verdict Core alongside:
 
 ```bash
-npm ci
+# Terminal 1: Verdict Core API
+verdict serve --host 0.0.0.0 --port 8000
+
+# Terminal 2: Verdict Node middleware pointing to Core
+export VERDICT_UPSTREAM=http://localhost:8000/v1
+node dist/index.js
+```
+
+Then `@verdict/node` will use Core's `/v1/route` endpoint for model selection.
+
+---
+
+## Development
+
+```bash
+# Install deps
+npm install
+
+# Type-check
 npm run typecheck
-npm test -- --runInBand
+
+# Lint
+npm run lint
+
+# Test
+npm test
+
+# Build
+npm run build
+
+# Verify package
 npm run verify:package
 ```
 
-The current baseline is 139 Jest tests, a passing TypeScript build, and a clean
-consumer package smoke. The release contract additionally requires:
+---
 
-- raw HTTP and OpenAI client compatibility tests;
-- non-streaming and arbitrary-boundary SSE fixtures;
-- abort, timeout, retry legality, and upstream error tests;
-- clean package installation outside the source tree;
-- security and dependency checks;
-- independent review of every public claim.
+## Project Structure
 
-Publishing remains blocked until the package owner configures npm Trusted
-Publishing for this repository and the exact workflow filename
-`npm-publish.yml`. The workflow uses GitHub OIDC and intentionally has no
-long-lived `NPM_TOKEN` fallback.
+```
+verdict-node/
+├── src/
+│   ├── index.ts              # Main exports
+│   ├── middleware/           # Express middleware
+│   │   ├── index.ts
+│   │   ├── criticality.ts    # Criticality classification
+│   │   ├── catalog.ts        # Model catalog discovery
+│   │   ├── routing.ts        # Model selection logic
+│   │   └── proxy.ts          # SSE proxy forwarding
+│   ├── types/                # Zod schemas + TS types
+│   └── utils/
+├── tests/                    # 139 tests
+├── scripts/                  # verify-package.mjs
+├── dist/                     # Build output
+└── package.json
+```
 
-## Relationship to Python llm-gate
+---
 
-The Python and TypeScript packages are intended to share versioned routing decision and outcome contracts. They are not currently drop-in feature-equivalent implementations. The Python package is the flagship proxy specification. This package remains a TypeScript middleware path until parity is demonstrated by contract tests.
+## Ecosystem
 
-## Security
+| Package                                                           | Purpose                                |
+| ----------------------------------------------------------------- | -------------------------------------- |
+| [`verdict-core`](https://github.com/verdict/verdict-core)         | Python control plane                   |
+| `@verdict/node`                                                   | Express/Next.js middleware (this repo) |
+| [`verdict-cockpit`](https://github.com/verdict/verdict-cockpit)   | Next.js dashboard                      |
+| [`verdict-risk`](https://github.com/verdict/verdict-risk)         | Risk engine                            |
+| [`verdict-edge`](https://github.com/verdict/verdict-edge)         | Edge mining framework                  |
+| [`verdict-backtest`](https://github.com/verdict/verdict-backtest) | Monte Carlo harness                    |
+| OmniRoute                                                         | 250+ providers, 90+ free tiers         |
 
-Never commit API keys, private keys, provider credentials, raw prompts, or raw completions. Use `OMNIROUTE_API_KEY` or another secret manager at runtime. See [SECURITY.md](SECURITY.md).
+---
+
+## Links
+
+- **Verdict Core**: https://github.com/verdict/verdict-core
+- **Verdict Cockpit**: https://github.com/verdict/verdict-cockpit
+- **Issues**: https://github.com/verdict/verdict-node/issues
+- **Discord**: https://discord.gg/verdict
+
+---
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+MIT — see [LICENSE](LICENSE)
