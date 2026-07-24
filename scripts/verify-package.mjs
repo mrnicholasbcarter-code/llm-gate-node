@@ -65,28 +65,12 @@ function assertPackageInventory(files) {
   }
 }
 
-function assertSupportedToolchain() {
-  const typescript = JSON.parse(
-    readFileSync(resolve('node_modules/typescript/package.json'), 'utf8')
-  );
-  const tsJest = JSON.parse(readFileSync(resolve('node_modules/ts-jest/package.json'), 'utf8'));
-  const typescriptVersion = String(typescript.version);
-  const typescriptPeer = tsJest.peerDependencies?.typescript;
-  if (!typescriptVersion.startsWith('5.9.')) {
-    throw new Error(`Unsupported TypeScript ${typescriptVersion}; expected the 5.9.x line.`);
-  }
-  if (typescriptPeer !== '>=4.3 <7') {
-    throw new Error(`Unexpected ts-jest TypeScript peer range: ${typescriptPeer}`);
-  }
-}
-
 const workspace = mkdtempSync(join(tmpdir(), 'verdict-node-package-'));
 const homeDirectory = join(workspace, 'home');
 const packDirectory = join(workspace, 'pack');
 const consumerDirectory = join(workspace, 'consumer');
 
 try {
-  assertSupportedToolchain();
   mkdirSync(homeDirectory);
   mkdirSync(packDirectory);
   mkdirSync(consumerDirectory);

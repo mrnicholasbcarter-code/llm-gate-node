@@ -8,13 +8,15 @@ jobs:
   clean-install:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
           node-version: '20.x'
           cache: 'npm'
       - name: Install dependencies from lockfile
         run: npm ci
+      - name: Assert supported TypeScript/ts-jest boundary
+        run: node -e "const p=require('./node_modules/typescript/package.json'); const peer=require('./node_modules/ts-jest/package.json').peerDependencies.typescript; if (!p.version.startsWith('5.9.')) throw new Error('Unsupported TypeScript '+p.version); if (peer !== '>=4.3 <7') throw new Error('Unexpected ts-jest TypeScript peer '+peer)"
       - name: Typecheck
         run: npm run typecheck
       - name: Check formatting

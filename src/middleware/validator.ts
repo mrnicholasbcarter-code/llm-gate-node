@@ -45,7 +45,7 @@ export function validate<T>(input: ValidatorOptions<T> | ValidationSchema<T>) {
         const result = options.schema.body.safeParse(req.body);
         if (!result.success) {
           errors.push(
-            ...result.error.errors.map((e: z.ZodIssue) => `body.${e.path.join('.')}: ${e.message}`)
+            ...result.error.issues.map((e: z.ZodIssue) => `body.${e.path.join('.')}: ${e.message}`)
           );
         } else if (options.sanitize) {
           req.body = result.data;
@@ -61,7 +61,7 @@ export function validate<T>(input: ValidatorOptions<T> | ValidationSchema<T>) {
         const result = options.schema.query.safeParse(req.query);
         if (!result.success) {
           errors.push(
-            ...result.error.errors.map((e: z.ZodIssue) => `query.${e.path.join('.')}: ${e.message}`)
+            ...result.error.issues.map((e: z.ZodIssue) => `query.${e.path.join('.')}: ${e.message}`)
           );
         } else if (options.sanitize) {
           req.query = result.data as any;
@@ -77,7 +77,7 @@ export function validate<T>(input: ValidatorOptions<T> | ValidationSchema<T>) {
         const result = options.schema.params.safeParse(req.params);
         if (!result.success) {
           errors.push(
-            ...result.error.errors.map(
+            ...result.error.issues.map(
               (e: z.ZodIssue) => `params.${e.path.join('.')}: ${e.message}`
             )
           );
@@ -95,7 +95,7 @@ export function validate<T>(input: ValidatorOptions<T> | ValidationSchema<T>) {
         const result = options.schema.headers.safeParse(req.headers);
         if (!result.success) {
           errors.push(
-            ...result.error.errors.map(
+            ...result.error.issues.map(
               (e: z.ZodIssue) => `headers.${e.path.join('.')}: ${e.message}`
             )
           );
@@ -153,7 +153,7 @@ export class DeepObjectValidator {
 
     return {
       success: false,
-      errors: result.error.errors.map((e: { message: string }) => e.message),
+      errors: result.error.issues.map((e: { message: string }) => e.message),
     };
   }
 
